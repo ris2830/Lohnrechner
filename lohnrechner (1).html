@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lohnrechner</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f2ed;
+  --white: #fff;
+  --ink: #1a1714;
+  --ink2: #3d3830;
+  --muted: #9e9789;
+  --border: #e2ddd6;
+  --orange: #e85d26;
+  --orange-l: #fdf0ea;
+  --green: #2a7a4b;
+  --green-l: #eaf5ee;
+  --blue: #2563c4;
+  --blue-l: #eef3fc;
+}
+
+body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+
+/* TOPBAR */
+.topbar {
+  background: var(--ink); height: 52px; padding: 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-size: 15px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+.topbar-hint { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #555; }
+
+/* LAYOUT */
+.layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 52px); }
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--white); border-right: 1px solid var(--border);
+  padding: 24px 20px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto;
+}
+.sec-label {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;
+}
+
+/* Upload */
+.upload-area {
+  border: 1.5px dashed var(--border); border-radius: 12px;
+  padding: 22px 14px; text-align: center; cursor: pointer;
+  background: var(--bg); transition: all 0.2s;
+}
+.upload-area:hover, .upload-area.drag { border-color: var(--orange); background: var(--orange-l); }
+.upload-area input { display: none; }
+.upload-icon { font-size: 26px; display: block; margin-bottom: 8px; }
+.upload-area h4 { font-size: 13px; font-weight: 600; color: var(--ink2); margin-bottom: 3px; }
+.upload-area p { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+.file-chip {
+  background: var(--green-l); border: 1px solid #b8e0c8; border-radius: 8px;
+  padding: 9px 12px; display: none; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 500; color: var(--green);
+}
+.file-chip.show { display: flex; }
+.file-chip .fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chip button {
+  background: none; border: none; cursor: pointer; color: var(--muted);
+  font-size: 18px; line-height: 1; transition: color 0.15s; flex-shrink: 0;
+}
+.file-chip button:hover { color: var(--orange); }
+
+/* Month picker */
+.year-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.year-label { font-size: 16px; font-weight: 700; }
+.year-nav { display: flex; gap: 4px; }
+.year-nav button {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  width: 28px; height: 28px; cursor: pointer; font-size: 14px; color: var(--ink2);
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.year-nav button:hover { background: var(--orange-l); border-color: var(--orange); color: var(--orange); }
+
+.month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.month-btn {
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 8px 3px; font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 500;
+  color: var(--ink2); cursor: pointer; text-align: center; transition: all 0.15s; position: relative;
+}
+.month-btn:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-l); }
+.month-btn.active { background: var(--orange); border-color: var(--orange); color: #fff; font-weight: 700; }
+.month-btn .dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--green);
+  position: absolute; top: 5px; right: 6px;
+}
+.month-btn.active .dot { background: rgba(255,255,255,0.6); }
+
+/* Inputs */
+.input-row {
+  display: flex; align-items: center; border: 1.5px solid var(--border);
+  border-radius: 10px; overflow: hidden; background: var(--bg); transition: border-color 0.2s;
+}
+.input-row:focus-within { border-color: var(--orange); background: #fff; }
+.input-row label {
+  padding: 0 12px; font-size: 11px; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; border-right: 1px solid var(--border);
+  height: 42px; display: flex; align-items: center; white-space: nowrap;
+}
+.input-row input {
+  flex: 1; border: none; background: none; outline: none; padding: 0 12px;
+  font-size: 15px; font-weight: 600; font-family: 'Outfit', sans-serif;
+  color: var(--ink); height: 42px;
+}
+.hint { font-size: 11px; color: var(--muted); margin-top: 5px; font-family: 'JetBrains Mono', monospace; }
+
+/* Meeting toggle */
+.meeting-wrap { display: none; }
+.meeting-wrap.show { display: block; }
+.meeting-toggle {
+  display: flex; align-items: center; gap: 12px; cursor: pointer;
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; transition: all 0.2s; user-select: none;
+}
+.meeting-toggle:hover { border-color: var(--orange); background: var(--orange-l); }
+.meeting-toggle input { display: none; }
+.toggle-box {
+  width: 20px; height: 20px; flex-shrink: 0; border: 2px solid var(--border);
+  border-radius: 5px; background: #fff; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.meeting-toggle.checked { border-color: var(--orange); background: var(--orange-l); }
+.meeting-toggle.checked .toggle-box { background: var(--orange); border-color: var(--orange); color: #fff; }
+.toggle-text { font-size: 13px; font-weight: 600; color: var(--ink2); line-height: 1.3; }
+.toggle-sub { font-size: 11px; font-weight: 400; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+/* MAIN */
+.main { padding: 28px; overflow-y: auto; }
+
+.empty {
+  height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px; text-align: center;
+}
+.empty-icon { font-size: 48px; opacity: 0.4; }
+.empty h3 { font-size: 17px; font-weight: 600; color: var(--ink2); }
+.empty p { font-size: 13px; color: var(--muted); max-width: 260px; line-height: 1.6; }
+
+/* Dashboard header */
+.dash-head { margin-bottom: 20px; }
+.dash-head h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.8px; }
+.dash-head .sub { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* KPI row */
+.kpi-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.kpi {
+  background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+  padding: 18px 20px; box-shadow: 0 1px 8px rgba(26,23,20,0.06);
+}
+.kpi.dark { background: var(--ink); border-color: var(--ink); }
+.kpi .klabel {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px;
+}
+.kpi.dark .klabel { color: rgba(255,255,255,0.4); }
+.kpi .kval { font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1; color: var(--ink); }
+.kpi.dark .kval { color: #fff; }
+.kpi .ksub { font-size: 11px; color: var(--muted); margin-top: 5px; font-family: 'JetBrains Mono', monospace; }
+.kpi.dark .ksub { color: rgba(255,255,255,0.35); }
+.kpi .ktag {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 20px; margin-top: 6px;
+}
+.tag-o { background: var(--orange-l); color: var(--orange); }
+.tag-g { background: var(--green-l); color: var(--green); }
+
+/* Content */
+.content-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; }
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: 0 1px 8px rgba(26,23,20,0.06); overflow: hidden;
+}
+.card-head {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-head h3 { font-size: 13px; font-weight: 700; }
+.badge {
+  font-size: 11px; font-weight: 600; padding: 2px 9px;
+  border-radius: 20px; background: var(--bg); color: var(--muted);
+}
+
+/* Table */
+.table-wrap { max-height: 360px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 0.8px;
+  text-transform: uppercase; padding: 9px 18px; text-align: left;
+  background: #faf9f7; border-bottom: 1px solid var(--border); position: sticky; top: 0;
+}
+td { padding: 10px 18px; font-size: 13px; border-bottom: 1px solid var(--border); color: var(--ink2); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #faf9f7; }
+tr.sun td { background: #fff8f5; }
+tr.sun:hover td { background: #fdf0e8; }
+tr.meet td { background: var(--blue-l); }
+tr.meet:hover td { background: #e0ecff; }
+tr.vac td { background: #f0f8ff; }
+tr.vac:hover td { background: #e5f2ff; }
+.no-data { padding: 32px; text-align: center; color: var(--muted); font-size: 13px; }
+
+.day-name { font-weight: 600; font-size: 13px; }
+.chip {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 1px 6px; border-radius: 12px; margin-left: 5px;
+}
+.chip-sun { background: var(--orange); color: #fff; }
+.chip-sat { background: var(--blue); color: #fff; }
+.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.earn-g { color: var(--green); font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.earn-o { color: var(--orange); font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.earn-b { color: var(--blue); font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.pause-note { font-size: 10px; color: var(--muted); }
+
+/* Deduction rows */
+.dr {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 11px 18px; border-bottom: 1px solid var(--border); gap: 8px;
+}
+.dr:last-child { border-bottom: none; }
+.dr.total { background: #faf9f7; }
+.dr-left {}
+.dr-label { font-size: 13px; color: var(--ink2); }
+.dr-label.bold { font-weight: 700; }
+.dr-note { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+.dr-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.dr-val.pos { color: var(--green); }
+.dr-val.neg { color: var(--orange); }
+.dr-val.total-val { font-size: 16px; font-weight: 700; color: var(--ink); }
+
+/* Stats button */
+.stats-btn {
+  width: 100%; padding: 12px; border-radius: 10px;
+  background: var(--ink); color: #fff; border: none;
+  font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; letter-spacing: -0.2px;
+}
+.stats-btn:hover { background: #2d2925; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(26,23,20,0.2); }
+.stats-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(26,23,20,0.5);
+  display: none; align-items: center; justify-content: center;
+  z-index: 1000; backdrop-filter: blur(4px); padding: 24px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--white); border-radius: 20px; width: 100%; max-width: 820px;
+  max-height: 90vh; display: flex; flex-direction: column;
+  box-shadow: 0 24px 80px rgba(26,23,20,0.25); overflow: hidden;
+}
+.modal-head {
+  padding: 20px 28px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.modal-head h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.modal-close {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  width: 32px; height: 32px; font-size: 18px; cursor: pointer; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.modal-close:hover { background: var(--orange-l); border-color: var(--orange); color: var(--orange); }
+.modal-body { padding: 28px; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; }
+
+/* Stat cards row */
+.stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stat-card {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+  padding: 16px 18px;
+}
+.stat-card .sc-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+.stat-card .sc-val { font-size: 22px; font-weight: 800; letter-spacing: -0.8px; color: var(--ink); }
+.stat-card .sc-sub { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+.stat-card.highlight { background: var(--ink); border-color: var(--ink); }
+.stat-card.highlight .sc-label { color: rgba(255,255,255,0.4); }
+.stat-card.highlight .sc-val { color: #fff; }
+.stat-card.highlight .sc-sub { color: rgba(255,255,255,0.35); }
+.stat-card.orange { background: var(--orange-l); border-color: rgba(232,93,38,0.2); }
+.stat-card.orange .sc-val { color: var(--orange); }
+
+/* Section title */
+.stats-section-title {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px;
+}
+
+/* Bar chart */
+.bar-chart { display: flex; flex-direction: column; gap: 10px; }
+.bar-row { display: flex; align-items: center; gap: 12px; }
+.bar-month { font-size: 12px; font-weight: 600; color: var(--ink2); width: 100px; flex-shrink: 0; text-align: right; }
+.bar-track { flex: 1; background: var(--bg); border-radius: 6px; height: 32px; overflow: hidden; position: relative; border: 1px solid var(--border); }
+.bar-fill {
+  height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; color: #fff;
+  white-space: nowrap; min-width: 80px;
+  transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
+}
+.bar-fill.normal { background: var(--ink); }
+.bar-fill.best   { background: var(--green); }
+.bar-fill.low    { background: var(--muted); }
+.bar-hours { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); width: 60px; flex-shrink: 0; text-align: right; }
+
+/* Stats table */
+.stats-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.stats-table th {
+  font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 0.8px;
+  text-transform: uppercase; padding: 8px 14px; text-align: left;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.stats-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--ink2); }
+.stats-table tr:last-child td { border-bottom: none; }
+.stats-table tr:hover td { background: #faf9f7; }
+.stats-table tr.best-row td { background: var(--green-l); }
+.stats-table .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.stats-table .earn-g { color: var(--green); font-weight: 600; }
+.stats-table .earn-o { color: var(--orange); font-weight: 600; }
+.rank-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; font-size: 11px; font-weight: 700;
+  background: var(--bg); color: var(--muted); border: 1px solid var(--border);
+}
+.rank-badge.gold   { background: #fef3c7; color: #d97706; border-color: #fde68a; }
+.rank-badge.silver { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+.rank-badge.bronze { background: #fdf4ec; color: #b45309; border-color: #fde8cc; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><div class="logo-dot"></div>Lohnrechner</div>
+  <div class="topbar-hint">21. – 20. Abrechnungszeitraum</div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <!-- Upload -->
+    <div>
+      <div class="sec-label">Kalender laden</div>
+      <div class="upload-area" id="uploadArea">
+        <input type="file" id="fileInput" accept=".ics">
+        <span class="upload-icon">📂</span>
+        <h4>ICS-Datei hochladen</h4>
+        <p>Klicken oder reinziehen</p>
+      </div>
+      <div class="file-chip" id="fileChip">
+        <span>✅</span>
+        <span class="fname" id="chipName"></span>
+        <button id="resetBtn">×</button>
+      </div>
+    </div>
+
+    <!-- Month picker -->
+    <div>
+      <div class="sec-label">Monat wählen</div>
+      <div class="year-row">
+        <span class="year-label" id="yearLabel">2025</span>
+        <div class="year-nav">
+          <button id="prevYear">‹</button>
+          <button id="nextYear">›</button>
+        </div>
+      </div>
+      <div class="month-grid" id="monthGrid"></div>
+    </div>
+
+    <!-- Vacation -->
+    <div>
+      <div class="sec-label">Urlaubsstunden</div>
+      <div class="input-row">
+        <label>Std.</label>
+        <input type="number" id="vacHours" min="0" max="500" value="0" placeholder="0">
+      </div>
+      <div class="hint" id="vacHint">Urlaubsstunden = 20,00 € / Std</div>
+    </div>
+
+    <!-- Meeting (only current + next month) -->
+    <div class="meeting-wrap" id="meetingWrap">
+      <div class="sec-label">Meeting</div>
+      <label class="meeting-toggle" id="meetingToggle">
+        <input type="checkbox" id="meetingCheck">
+        <span class="toggle-box" id="toggleBox"></span>
+        <span class="toggle-text">
+          Monatliches Meeting<br>
+          <span class="toggle-sub">+1,5 Stunden</span>
+        </span>
+      </label>
+      <div class="hint" style="margin-top:6px">Noch nicht im Kalender</div>
+    </div>
+
+    <div style="margin-top:auto;padding-top:8px">
+      <button class="stats-btn" id="statsBtn">📊 Statistiken anzeigen</button>
+    </div>
+  </aside>
+
+  <!-- STATS MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="statsModal">
+      <div class="modal-head">
+        <h2>Statistiken</h2>
+        <button class="modal-close" id="modalClose">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <main class="main">
+    <div class="empty" id="emptyState">
+      <div class="empty-icon">📋</div>
+      <h3>Kein Kalender geladen</h3>
+      <p>Lade deine .ics-Datei hoch und wähle dann einen Monat aus.</p>
+    </div>
+
+    <div id="dashboard" style="display:none">
+      <div class="dash-head">
+        <h2 id="dashTitle"></h2>
+        <div class="sub" id="dashSub"></div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi dark">
+          <div class="klabel">Netto ca.</div>
+          <div class="kval" id="kNetto">–</div>
+          <div class="ksub" id="kBrutto">–</div>
+        </div>
+        <div class="kpi">
+          <div class="klabel">Stunden</div>
+          <div class="kval" id="kHours">–</div>
+          <div class="ktag tag-o" id="kShifts">–</div>
+        </div>
+        <div class="kpi">
+          <div class="klabel">Sonntage</div>
+          <div class="kval" id="kSun">–</div>
+          <div class="ktag tag-g" id="kSunEarn">–</div>
+        </div>
+      </div>
+
+      <div class="content-row">
+        <div class="card">
+          <div class="card-head">
+            <h3>Schichten im Zeitraum</h3>
+            <span class="badge" id="shiftBadge">0</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tag</th><th>Std.</th><th>Rate</th><th>Verdienst</th></tr></thead>
+              <tbody id="shiftsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Lohnberechnung</h3></div>
+          <div id="deductBody"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────
+const MONTHS_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const MONTHS_LONG  = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const DAYS_LONG    = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+
+// ─────────────────────────────────────────
+// State
+// ─────────────────────────────────────────
+let allEvents = [];
+let selYear   = new Date().getFullYear();
+let selMonth  = new Date().getMonth(); // 0-indexed
+let vacMap    = {}; // key: "year-month" -> vacHours
+let meetingChecked = false;
+
+function vacKey() { return selYear + '-' + selMonth; }
+function getVac() { return vacMap[vacKey()] || 0; }
+function setVac(v) { vacMap[vacKey()] = v; }
+
+// ─────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────
+function eur(n) {
+  return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+}
+
+// ─────────────────────────────────────────
+// Hourly rate logic
+// ─────────────────────────────────────────
+function getRate(year, month) {
+  // Ab Abrechnungszeitraum Feb 2026 (selMonth=1, selYear=2026): 21 €
+  // Sonntag = rate * 1.5
+  if (year > 2026) return 21;
+  if (year === 2026 && month >= 1) return 21;
+  return 20;
+}
+
+// ─────────────────────────────────────────
+// ICS Parser
+// ─────────────────────────────────────────
+function parseICS(text) {
+  const events = [];
+  const blocks = text.split('BEGIN:VEVENT').slice(1);
+  for (const block of blocks) {
+    const ds = block.match(/DTSTART(?:;[^:]*)?:([^\r\n]+)/);
+    const de = block.match(/DTEND(?:;[^:]*)?:([^\r\n]+)/);
+    if (!ds || !de) continue;
+    const start = parseICSDate(ds[1].trim());
+    const end   = parseICSDate(de[1].trim());
+    if (!start || !end) continue;
+    const dow = start.getUTCDay(); // 0=Sun, 6=Sat
+    let hours = (end - start) / 3600000;
+    if (hours <= 0) continue;
+    // Samstag & Sonntag: 3h Pause abziehen
+    if (dow === 0 || dow === 6) hours = Math.max(0, hours - 3);
+    events.push({
+      start,
+      hours,
+      isSunday:   dow === 0,
+      isSaturday: dow === 6,
+    });
+  }
+  return events;
+}
+
+function parseICSDate(str) {
+  const m = str.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})Z?)?/);
+  if (!m) return null;
+  return new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +(m[4]||0), +(m[5]||0), +(m[6]||0)));
+}
+
+// ─────────────────────────────────────────
+// Period: 21st of prev month → 20th of this month
+// ─────────────────────────────────────────
+function getPeriod(year, month) {
+  const start = new Date(Date.UTC(year, month - 1, 21));
+  const end   = new Date(Date.UTC(year, month, 20, 23, 59, 59));
+  return { start, end };
+}
+
+function getEventsForPeriod(year, month) {
+  const { start, end } = getPeriod(year, month);
+  return allEvents.filter(e => e.start >= start && e.start <= end);
+}
+
+// ─────────────────────────────────────────
+// Months that have data (for dots)
+// ─────────────────────────────────────────
+function getMonthsWithData() {
+  const set = new Set();
+  for (const ev of allEvents) {
+    const d = ev.start.getUTCDate();
+    const m = ev.start.getUTCMonth();
+    const y = ev.start.getUTCFullYear();
+    if (d >= 21) {
+      const nm = m + 1;
+      set.add(nm > 11 ? `${y+1}-0` : `${y}-${nm}`);
+    } else {
+      set.add(`${y}-${m}`);
+    }
+  }
+  return set;
+}
+
+// ─────────────────────────────────────────
+// Midijob RV calculation (derived from slips)
+// ─────────────────────────────────────────
+function calcRV(brutto) {
+  if (brutto <= 538) return 0;
+  if (brutto > 2000) return brutto * 0.093;
+  // Formula derived from actual payslips:
+  // Oct slip: 760€ brutto → RV-Brutto 282,55€ → × 9,3% = 26,28€
+  // Dec slip: 700€ brutto → RV-Brutto 199,45€ → × 9,3% = 18,55€
+  const rvBrutto = Math.max(0, 1.385 * brutto - 770.05);
+  return rvBrutto * 0.093;
+}
+
+// ─────────────────────────────────────────
+// Render month grid
+// ─────────────────────────────────────────
+function renderGrid() {
+  document.getElementById('yearLabel').textContent = selYear;
+  const withData = getMonthsWithData();
+  const grid = document.getElementById('monthGrid');
+  grid.innerHTML = '';
+  MONTHS_SHORT.forEach((name, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'month-btn';
+    if (i === selMonth && allEvents.length) btn.classList.add('active');
+    btn.textContent = name;
+    if (withData.has(`${selYear}-${i}`)) {
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      btn.appendChild(dot);
+    }
+    btn.addEventListener('click', () => {
+      selMonth = i;
+      document.getElementById('vacHours').value = getVac();
+      renderGrid();
+      renderDash();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+// ─────────────────────────────────────────
+// Render dashboard
+// ─────────────────────────────────────────
+function renderDash() {
+  const empty = document.getElementById('emptyState');
+  const dash  = document.getElementById('dashboard');
+
+  if (!allEvents.length) {
+    empty.style.display = 'flex';
+    dash.style.display  = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  dash.style.display  = 'block';
+
+  // Period
+  const { start: pStart } = getPeriod(selYear, selMonth);
+  const events = getEventsForPeriod(selYear, selMonth);
+  const rate    = getRate(selYear, selMonth);
+  const sunRate = rate * 1.5;
+
+  // Is this current or next month? → show meeting checkbox
+  const now   = new Date();
+  const curY  = now.getFullYear(), curM = now.getMonth();
+  const nxtM  = curM === 11 ? 0 : curM + 1;
+  const nxtY  = curM === 11 ? curY + 1 : curY;
+  const isCurrentOrNext =
+    (selYear === curY && selMonth === curM) ||
+    (selYear === nxtY && selMonth === nxtM);
+
+  // Show meeting checkbox only if current/next month AND no 1.5h shift already in calendar
+  const meetingAlreadyInCal = events.some(
+    e => Math.abs(e.hours - 1.5) < 0.01 && !e.isSunday && !e.isSaturday
+  );
+  const showMeetingCheckbox = isCurrentOrNext && !meetingAlreadyInCal;
+  const meetingWrap = document.getElementById('meetingWrap');
+  meetingWrap.classList.toggle('show', showMeetingCheckbox);
+  if (!showMeetingCheckbox) {
+    meetingChecked = false;
+    document.getElementById('meetingCheck').checked = false;
+    document.getElementById('meetingToggle').classList.remove('checked');
+    document.getElementById('toggleBox').textContent = '';
+  }
+
+  // Hours
+  let normalH = 0, sunH = 0;
+  let hasMeetingInCal = false;
+  for (const ev of events) {
+    // Detect 1.5h shift as meeting (only for past months)
+    if (!isCurrentOrNext && Math.abs(ev.hours - 1.5) < 0.01 && !ev.isSunday && !ev.isSaturday) {
+      hasMeetingInCal = true;
+    }
+    if (ev.isSunday) sunH += ev.hours;
+    else normalH += ev.hours;
+  }
+
+  // Meeting hours
+  let meetingH = 0;
+  if (isCurrentOrNext && meetingChecked) meetingH = 1.5;
+  // (if in calendar, already counted in normalH)
+
+  const vacHours = getVac();
+  const totalH  = normalH + sunH + vacHours + meetingH;
+  const normalE = normalH * rate;
+  const sunE    = sunH * sunRate;
+  const vacE    = vacHours * rate;
+  const meetE   = meetingH * rate;
+  const brutto  = normalE + sunE + vacE + meetE;
+  const rv      = calcRV(brutto);
+  const netto   = brutto - rv;
+
+  // Header
+  const prevM = selMonth === 0 ? 11 : selMonth - 1;
+  const prevY = selMonth === 0 ? selYear - 1 : selYear;
+  document.getElementById('dashTitle').textContent = `${MONTHS_LONG[selMonth]} ${selYear}`;
+  document.getElementById('dashSub').textContent   =
+    `Zeitraum: 21. ${MONTHS_LONG[prevM]} ${prevY} – 20. ${MONTHS_LONG[selMonth]} ${selYear}`;
+
+  // KPIs
+  document.getElementById('kNetto').textContent  = netto.toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' €';
+  document.getElementById('kBrutto').textContent = `Brutto: ${eur(brutto)}`;
+  document.getElementById('kHours').textContent  = totalH.toFixed(1).replace('.', ',');
+  document.getElementById('kShifts').textContent = `${events.length} Schicht${events.length !== 1 ? 'en' : ''}`;
+  document.getElementById('kSun').textContent    = sunH.toFixed(1).replace('.', ',');
+  document.getElementById('kSunEarn').textContent = sunH > 0 ? eur(sunE) : 'Keine Sonntage';
+
+  // Vacation hint
+  document.getElementById('vacHint').textContent = `Urlaubsstunden = ${rate.toFixed(2).replace('.', ',')} € / Std`;
+
+  // ── Shifts table
+  const sorted = [...events].sort((a, b) => a.start - b.start);
+  if (vacHours > 0) sorted.push({ _vac: true, hours: vacHours });
+  if (isCurrentOrNext && meetingChecked) sorted.push({ _meeting: true, hours: 1.5 });
+
+  const tbody = document.getElementById('shiftsBody');
+  tbody.innerHTML = '';
+  document.getElementById('shiftBadge').textContent = sorted.length + ' Einträge';
+
+  if (!sorted.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="no-data">Keine Einträge in diesem Zeitraum</td></tr>`;
+  } else {
+    for (const row of sorted) {
+      const tr = document.createElement('tr');
+
+      if (row._vac) {
+        tr.className = 'vac';
+        tr.innerHTML = `
+          <td><span class="day-name">🏖 Urlaub</span></td>
+          <td class="mono">${row.hours.toFixed(1)} h</td>
+          <td class="mono">${rate.toFixed(2).replace('.', ',')} €</td>
+          <td class="earn-b">${eur(row.hours * rate)}</td>`;
+
+      } else if (row._meeting) {
+        tr.className = 'meet';
+        tr.innerHTML = `
+          <td><span class="day-name">📋 Meeting</span></td>
+          <td class="mono">1,5 h</td>
+          <td class="mono">${rate.toFixed(2).replace('.', ',')} €</td>
+          <td class="earn-b">${eur(1.5 * rate)}</td>`;
+
+      } else {
+        // Detect meeting in calendar (past months)
+        const isMeeting = !isCurrentOrNext &&
+          Math.abs(row.hours - 1.5) < 0.01 &&
+          !row.isSunday && !row.isSaturday;
+
+        if (isMeeting)        tr.className = 'meet';
+        else if (row.isSunday || row.isSaturday) tr.className = 'sun';
+
+        const earn = row.isSunday ? row.hours * sunRate : row.hours * rate;
+        const rateDisplay = row.isSunday
+          ? sunRate.toFixed(2).replace('.', ',') + ' €'
+          : rate.toFixed(2).replace('.', ',') + ' €';
+
+        let dayLabel = '';
+        if (isMeeting) {
+          dayLabel = '📋 Meeting';
+        } else {
+          const badge = row.isSunday
+            ? '<span class="chip chip-sun">SO</span>'
+            : row.isSaturday
+              ? '<span class="chip chip-sat">SA</span>'
+              : '';
+          dayLabel = `${DAYS_LONG[row.start.getUTCDay()]}, ${fmtDate(row.start)}${badge}`;
+        }
+
+        const isWeekend = row.isSunday || row.isSaturday;
+        const hoursLabel = isWeekend
+          ? `${row.hours.toFixed(1)} h <span class="pause-note">(−3h Pause)</span>`
+          : `${row.hours.toFixed(1)} h`;
+
+        tr.innerHTML = `
+          <td><span class="day-name">${dayLabel}</span></td>
+          <td class="mono">${hoursLabel}</td>
+          <td class="mono">${isMeeting ? rate.toFixed(2).replace('.', ',') + ' €' : rateDisplay}</td>
+          <td class="${row.isSunday ? 'earn-o' : isMeeting ? 'earn-b' : 'earn-g'}">${eur(earn)}</td>`;
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  // ── Deduction rows
+  const rows = [];
+  if (normalH > 0) rows.push({ l: 'Stundenlohn Werktage', n: `${normalH.toFixed(1)} h × ${rate} €`, v: normalE, cls: 'pos' });
+  if (sunH > 0)    rows.push({ l: 'Stundenlohn Sonntag',  n: `${sunH.toFixed(1)} h × ${sunRate.toFixed(2)} €`, v: sunE, cls: 'pos' });
+  if (vacHours > 0) rows.push({ l: 'Urlaubslohn', n: `${vacHours} h × ${rate} €`, v: vacE, cls: 'pos' });
+  if (meetingH > 0 || hasMeetingInCal) {
+    const mH = hasMeetingInCal ? 1.5 : meetingH;
+    rows.push({ l: 'Meeting', n: `1,5 h × ${rate} €`, v: mH * rate, cls: 'pos' });
+  }
+  rows.push({ l: 'Gesamt-Brutto', v: brutto, cls: 'pos', bold: true });
+  rows.push({ l: 'Rentenversicherung (AN)', n: 'Midijob-Gleitzone', v: -rv, cls: 'neg' });
+  rows.push({ l: 'Lohnsteuer', n: 'Steuerklasse 1 – entfällt', v: 0 });
+  rows.push({ l: 'KV / AV / PV (AN)', n: 'Arbeitgeber trägt im Midijob', v: 0 });
+  rows.push({ l: '≈ Netto-Auszahlung', v: netto, total: true });
+
+  document.getElementById('deductBody').innerHTML = rows.map(r => `
+    <div class="dr${r.total ? ' total' : ''}">
+      <div class="dr-left">
+        <div class="dr-label${r.bold || r.total ? ' bold' : ''}">${r.l}</div>
+        ${r.n ? `<div class="dr-note">${r.n}</div>` : ''}
+      </div>
+      <div class="dr-val${r.total ? ' total-val' : (r.cls ? ' ' + r.cls : '')}">
+        ${r.v === 0 ? '0,00 €' : r.v < 0 ? '−' + eur(-r.v) : eur(r.v)}
+      </div>
+    </div>`).join('');
+}
+
+// ─────────────────────────────────────────
+// File loading
+// ─────────────────────────────────────────
+function loadFile(file) {
+  if (!file || !file.name.endsWith('.ics')) {
+    alert('Bitte eine .ics-Datei auswählen.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    allEvents = parseICS(e.target.result);
+    document.getElementById('uploadArea').style.display = 'none';
+    document.getElementById('fileChip').classList.add('show');
+    document.getElementById('chipName').textContent = file.name;
+
+    // Auto-select latest month with data
+    const withData = getMonthsWithData();
+    let bestY = 0, bestM = 0;
+    withData.forEach(k => {
+      const [y, m] = k.split('-').map(Number);
+      if (y > bestY || (y === bestY && m > bestM)) { bestY = y; bestM = m; }
+    });
+    selYear  = bestY || new Date().getFullYear();
+    selMonth = bestM;
+
+    renderGrid();
+    renderDash();
+  };
+  reader.readAsText(file);
+}
+
+// ─────────────────────────────────────────
+// Event listeners
+// ─────────────────────────────────────────
+const ua = document.getElementById('uploadArea');
+ua.addEventListener('click', () => document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change', e => loadFile(e.target.files[0]));
+ua.addEventListener('dragover', e => { e.preventDefault(); ua.classList.add('drag'); });
+ua.addEventListener('dragleave', () => ua.classList.remove('drag'));
+ua.addEventListener('drop', e => {
+  e.preventDefault(); ua.classList.remove('drag');
+  loadFile(e.dataTransfer.files[0]);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  allEvents = [];
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileChip').classList.remove('show');
+  document.getElementById('uploadArea').style.display = '';
+  document.getElementById('vacHours').value = 0;
+  vacMap = {};
+  meetingChecked = false;
+  document.getElementById('meetingCheck').checked = false;
+  document.getElementById('meetingToggle').classList.remove('checked');
+  document.getElementById('toggleBox').textContent = '';
+  renderGrid();
+  renderDash();
+});
+
+document.getElementById('prevYear').addEventListener('click', () => {
+  selYear--;
+  document.getElementById('vacHours').value = getVac();
+  renderGrid();
+  if (allEvents.length) renderDash();
+});
+document.getElementById('nextYear').addEventListener('click', () => {
+  selYear++;
+  document.getElementById('vacHours').value = getVac();
+  renderGrid();
+  if (allEvents.length) renderDash();
+});
+
+document.getElementById('vacHours').addEventListener('input', e => {
+  setVac(parseFloat(e.target.value) || 0);
+  if (allEvents.length) renderDash();
+});
+
+document.getElementById('meetingCheck').addEventListener('change', function() {
+  meetingChecked = this.checked;
+  document.getElementById('meetingToggle').classList.toggle('checked', meetingChecked);
+  document.getElementById('toggleBox').textContent = meetingChecked ? '✓' : '';
+  if (allEvents.length) renderDash();
+});
+
+// Init
+renderGrid();
+
+// ─────────────────────────────────────────
+// Statistics
+// ─────────────────────────────────────────
+function computeAllMonthStats() {
+  // Find all months that have data
+  const withData = getMonthsWithData();
+  const results = [];
+
+  withData.forEach(key => {
+    const [y, m] = key.split('-').map(Number);
+    const events = getEventsForPeriod(y, m);
+    if (!events.length) return;
+
+    const rate    = getRate(y, m);
+    const sunRate = rate * 1.5;
+    let normalH = 0, sunH = 0;
+
+    for (const ev of events) {
+      if (ev.isSunday) sunH += ev.hours;
+      else normalH += ev.hours;
+    }
+
+    // Auto-count 1.5h meeting shifts
+    const meetingH = events.some(e => Math.abs(e.hours - 1.5) < 0.01 && !e.isSunday && !e.isSaturday) ? 1.5 : 0;
+    const vacH     = vacMap[key] || 0;
+    const totalH   = normalH + sunH + vacH;
+    const brutto   = normalH * rate + sunH * sunRate + vacH * rate;
+    const netto    = brutto - calcRV(brutto);
+
+    results.push({
+      key, year: y, month: m,
+      label: MONTHS_LONG[m] + ' ' + y,
+      short: MONTHS_SHORT[m] + ' ' + y,
+      totalH, normalH, sunH, meetingH, vacH,
+      brutto, netto,
+      shiftCount: events.length,
+      rate
+    });
+  });
+
+  // Sort chronologically
+  results.sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
+  return results;
+}
+
+function showStats() {
+  const stats = computeAllMonthStats();
+  if (!stats.length) return;
+
+  const totalNetto  = stats.reduce((s, m) => s + m.netto, 0);
+  const totalBrutto = stats.reduce((s, m) => s + m.brutto, 0);
+  const totalH      = stats.reduce((s, m) => s + m.totalH, 0);
+  const avgNetto    = totalNetto / stats.length;
+  const maxM        = stats.reduce((a, b) => a.netto > b.netto ? a : b);
+  const minM        = stats.reduce((a, b) => a.netto < b.netto ? a : b);
+  const maxH        = Math.max(...stats.map(m => m.totalH));
+
+  // Sort by netto desc for ranking
+  const ranked = [...stats].sort((a, b) => b.netto - a.netto);
+
+  const body = document.getElementById('modalBody');
+  body.innerHTML = '';
+
+  // ── KPI cards
+  const cardsDiv = document.createElement('div');
+  cardsDiv.innerHTML = '<div class="stats-section-title">Übersicht</div>';
+  const grid = document.createElement('div');
+  grid.className = 'stat-cards';
+  grid.innerHTML = `
+    <div class="stat-card highlight">
+      <div class="sc-label">Gesamt Netto</div>
+      <div class="sc-val">${totalNetto.toLocaleString('de-DE',{maximumFractionDigits:0})} €</div>
+      <div class="sc-sub">${stats.length} Monate</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="sc-label">Bester Monat</div>
+      <div class="sc-val">${maxM.netto.toLocaleString('de-DE',{maximumFractionDigits:0})} €</div>
+      <div class="sc-sub">${maxM.short}</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-label">Ø pro Monat</div>
+      <div class="sc-val">${avgNetto.toLocaleString('de-DE',{maximumFractionDigits:0})} €</div>
+      <div class="sc-sub">Netto</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-label">Gesamtstunden</div>
+      <div class="sc-val">${totalH.toFixed(0)}</div>
+      <div class="sc-sub">Std gearbeitet</div>
+    </div>`;
+  cardsDiv.appendChild(grid);
+  body.appendChild(cardsDiv);
+
+  // ── Bar chart
+  const chartDiv = document.createElement('div');
+  chartDiv.innerHTML = '<div class="stats-section-title">Netto pro Monat</div>';
+  const chart = document.createElement('div');
+  chart.className = 'bar-chart';
+  stats.forEach(m => {
+    const pct = (m.netto / (maxM.netto * 1.05)) * 100;
+    const isBest = m.key === maxM.key;
+    const isLow  = m.key === minM.key;
+    const cls    = isBest ? 'best' : isLow ? 'low' : 'normal';
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+      <div class="bar-month">${m.short}</div>
+      <div class="bar-track">
+        <div class="bar-fill ${cls}" style="width:${pct}%">
+          ${m.netto.toLocaleString('de-DE',{maximumFractionDigits:0})} €
+        </div>
+      </div>
+      <div class="bar-hours">${m.totalH.toFixed(1)} h</div>`;
+    chart.appendChild(row);
+  });
+  chartDiv.appendChild(chart);
+  body.appendChild(chartDiv);
+
+  // ── Ranking table
+  const tableDiv = document.createElement('div');
+  tableDiv.innerHTML = '<div class="stats-section-title">Monatsranking</div>';
+  const tbl = document.createElement('table');
+  tbl.className = 'stats-table';
+  tbl.innerHTML = `<thead><tr>
+    <th>#</th><th>Monat</th><th>Schichten</th>
+    <th>Stunden</th><th>So-Std</th><th>Brutto</th><th>Netto ca.</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+  ranked.forEach((m, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const rankIcon  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1;
+    const tr = document.createElement('tr');
+    if (i === 0) tr.className = 'best-row';
+    tr.innerHTML = `
+      <td><span class="rank-badge ${rankClass}">${rankIcon}</span></td>
+      <td style="font-weight:600">${m.label}</td>
+      <td class="mono">${m.shiftCount}</td>
+      <td class="mono">${m.totalH.toFixed(1)}</td>
+      <td class="mono">${m.sunH.toFixed(1)}</td>
+      <td class="mono">${eur(m.brutto)}</td>
+      <td class="mono earn-g">${eur(m.netto)}</td>`;
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  tableDiv.appendChild(tbl);
+  body.appendChild(tableDiv);
+
+  // Open modal
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+document.getElementById('statsBtn').addEventListener('click', () => {
+  if (!allEvents.length) return;
+  showStats();
+});
+
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('modalOverlay').classList.remove('open');
+});
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
